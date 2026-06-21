@@ -11,6 +11,7 @@ Pull many Git repositories safely from one CLI.
 - Uses a safe pull strategy: `git pull --ff-only --prune`.
 - Skips dirty worktrees by default.
 - Skips detached HEAD and branches without an upstream.
+- Shows a minimal single-line progress indicator in interactive terminals.
 - Shows one clear final table with repository, branch, upstream, and result.
 - Optionally parks dirty work on a `multipull-backup/*` branch before switching to the default branch.
 

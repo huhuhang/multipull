@@ -180,9 +180,13 @@ export async function runRepos(
     jobs: options.jobs ?? DEFAULT_JOBS,
     timeoutMs: options.timeoutMs ?? DEFAULT_TIMEOUT_MS
   };
+  if (options.onProgress) {
+    runOptions.onProgress = options.onProgress;
+  }
 
   const results = new Map<string, RepoResult>();
   const queue = [...repos];
+  let completed = 0;
 
   async function worker(): Promise<void> {
     while (queue.length > 0) {
@@ -191,10 +195,25 @@ export async function runRepos(
         continue;
       }
 
+      runOptions.onProgress?.({
+        phase: "run",
+        completed,
+        total: repos.length,
+        currentRepo: repo.label
+      });
+
       try {
         results.set(repo.path, await processRepo(repo, runOptions));
       } catch (error) {
         results.set(repo.path, failedResult(repo, error));
+      } finally {
+        completed += 1;
+        runOptions.onProgress?.({
+          phase: "run",
+          completed,
+          total: repos.length,
+          currentRepo: repo.label
+        });
       }
     }
   }

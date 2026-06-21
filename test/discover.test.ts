@@ -47,5 +47,20 @@ describe("discoverRepos", () => {
 
     expect(repos.map((repo) => repo.label)).toEqual(["d1/repo"]);
   });
-});
 
+  it("reports scan progress", async () => {
+    const root = await tempDir();
+    await initRepo(join(root, "repo"));
+    const events: Array<{ scannedDirs: number; foundRepos: number }> = [];
+
+    await discoverRepos([root], {
+      maxDepth: 4,
+      onProgress: (event) => {
+        events.push({ scannedDirs: event.scannedDirs, foundRepos: event.foundRepos });
+      }
+    });
+
+    expect(events.some((event) => event.scannedDirs > 0)).toBe(true);
+    expect(events.some((event) => event.foundRepos === 1)).toBe(true);
+  });
+});

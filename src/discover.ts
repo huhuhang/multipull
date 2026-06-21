@@ -5,6 +5,11 @@ import { DEFAULT_MAX_DEPTH, SCAN_IGNORE_NAMES, SCAN_IGNORE_PREFIXES } from "./de
 import { repoName, verifyRepo } from "./git.js";
 import type { DiscoverOptions, Repo } from "./types.js";
 
+interface DiscoverState {
+  scannedDirs: number;
+  foundRepos: number;
+}
+
 function shouldIgnoreDir(name: string): boolean {
   return SCAN_IGNORE_NAMES.has(name) || SCAN_IGNORE_PREFIXES.some((prefix) => name.startsWith(prefix));
 }
@@ -41,9 +46,18 @@ async function walkForRepos(
   root: string,
   dirPath: string,
   options: DiscoverOptions,
+  state: DiscoverState,
   seen: Set<string>,
   repoPaths: string[]
 ): Promise<void> {
+  state.scannedDirs += 1;
+  options.onProgress?.({
+    phase: "scan",
+    scannedDirs: state.scannedDirs,
+    foundRepos: state.foundRepos,
+    currentPath: dirPath
+  });
+
   let dir;
   try {
     dir = await opendir(dirPath);
@@ -72,6 +86,13 @@ async function walkForRepos(
     if (repoRoot && !seen.has(repoRoot)) {
       seen.add(repoRoot);
       repoPaths.push(repoRoot);
+      state.foundRepos += 1;
+      options.onProgress?.({
+        phase: "scan",
+        scannedDirs: state.scannedDirs,
+        foundRepos: state.foundRepos,
+        currentPath: dirPath
+      });
     }
   }
 
@@ -79,7 +100,7 @@ async function walkForRepos(
     return;
   }
 
-  await Promise.all(childDirs.map((child) => walkForRepos(root, child, options, seen, repoPaths)));
+  await Promise.all(childDirs.map((child) => walkForRepos(root, child, options, state, seen, repoPaths)));
 }
 
 export async function discoverRepos(
@@ -100,7 +121,8 @@ export async function discoverRepos(
 
   const seen = new Set<string>();
   const repoPaths: string[] = [];
-  await Promise.all(roots.map((root) => walkForRepos(root, root, options, seen, repoPaths)));
+  const state: DiscoverState = { scannedDirs: 0, foundRepos: 0 };
+  await Promise.all(roots.map((root) => walkForRepos(root, root, options, state, seen, repoPaths)));
 
   return {
     repos: repoPaths

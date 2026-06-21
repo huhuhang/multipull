@@ -6,7 +6,7 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
 import { parseStatusHeader } from "../src/git.js";
-import { processRepo } from "../src/runner.js";
+import { processRepo, runRepos } from "../src/runner.js";
 import type { Repo } from "../src/types.js";
 
 function git(cwd: string, args: string[]): string {
@@ -84,5 +84,31 @@ describe("processRepo", () => {
     expect(git(repoPath, ["show", `${backupBranch}:feature.txt`])).toBe("dirty\n");
     await expect(readFile(join(repoPath, "feature.txt"), "utf8")).rejects.toThrow();
   });
-});
 
+  it("reports run progress", async () => {
+    const repoPath = await tempDir();
+    git(repoPath, ["init", "-q"]);
+    const events: Array<{ completed: number; total: number; currentRepo?: string }> = [];
+
+    await runRepos(
+      [{ path: repoPath, label: "repo" }],
+      {
+        dryRun: true,
+        verbose: false,
+        parkToDefaultBranch: false,
+        jobs: 1,
+        timeoutMs: 30_000,
+        onProgress: (event) => {
+          events.push({
+            completed: event.completed,
+            total: event.total,
+            currentRepo: event.currentRepo
+          });
+        }
+      }
+    );
+
+    expect(events).toContainEqual({ completed: 0, total: 1, currentRepo: "repo" });
+    expect(events).toContainEqual({ completed: 1, total: 1, currentRepo: "repo" });
+  });
+});
