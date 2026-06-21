@@ -1,6 +1,6 @@
 {
   "name": "@huhuhang/multipull",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Pull many Git repositories safely from one CLI.",
   "type": "module",
   "repository": {
@@ -20,7 +20,7 @@
     "LICENSE"
   ],
   "scripts": {
-    "build": "tsc -p tsconfig.json",
+    "build": "tsc -p tsconfig.json && chmod +x dist/cli.js",
     "dev": "tsx src/cli.ts",
     "test": "vitest run",
     "typecheck": "tsc -p tsconfig.json --noEmit",

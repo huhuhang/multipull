@@ -1,4 +1,7 @@
 #!/usr/bin/env node
+import { realpathSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+
 import { Command } from "commander";
 
 import { DEFAULT_MAX_DEPTH } from "./defaults.js";
@@ -96,7 +99,16 @@ export async function main(argv = process.argv): Promise<number> {
   return counts.failed > 0 ? 1 : 0;
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+function isDirectExecution(): boolean {
+  const entrypoint = process.argv[1];
+  if (!entrypoint) {
+    return false;
+  }
+
+  return realpathSync(fileURLToPath(import.meta.url)) === realpathSync(entrypoint);
+}
+
+if (isDirectExecution()) {
   main().then(
     (code) => {
       process.exitCode = code;
