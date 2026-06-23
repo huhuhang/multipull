@@ -1,4 +1,35 @@
-import type { RepoResult } from "./types.js";
+import type { RepoResult, ResultCategory } from "./types.js";
+
+interface RenderTableOptions {
+  color?: boolean;
+}
+
+const ansi = {
+  bold: ["\u001b[1m", "\u001b[22m"],
+  dim: ["\u001b[2m", "\u001b[22m"],
+  green: ["\u001b[32m", "\u001b[39m"],
+  yellow: ["\u001b[33m", "\u001b[39m"],
+  red: ["\u001b[31m", "\u001b[39m"],
+  cyan: ["\u001b[36m", "\u001b[39m"]
+} as const;
+
+function style(text: string, code: keyof typeof ansi, enabled: boolean): string {
+  if (!enabled) {
+    return text;
+  }
+  const [open, close] = ansi[code];
+  return `${open}${text}${close}`;
+}
+
+function shouldColor(): boolean {
+  if (process.env.NO_COLOR) {
+    return false;
+  }
+  if (process.env.FORCE_COLOR && process.env.FORCE_COLOR !== "0") {
+    return true;
+  }
+  return process.stdout.isTTY === true;
+}
 
 function fit(text: string, width: number): string {
   if (text.length <= width) {
@@ -24,19 +55,41 @@ function widths(results: RepoResult[]): [number, number, number, number] {
   return [repo, branch, upstream, result];
 }
 
-export function renderTable(results: RepoResult[]): string {
+function resultStyle(category: ResultCategory): keyof typeof ansi | undefined {
+  switch (category) {
+    case "ok":
+      return "green";
+    case "skip":
+      return "yellow";
+    case "fail":
+      return "red";
+    case "dry":
+    case "pending":
+    case "running":
+      return "cyan";
+  }
+}
+
+export function renderTable(results: RepoResult[], options: RenderTableOptions = {}): string {
+  const color = options.color ?? shouldColor();
   const headers = ["Repo", "Branch", "Upstream", "Result"];
   const columnWidths = widths(results);
   const lines = [
-    headers.map((header, index) => fit(header, columnWidths[index] ?? header.length)).join("  "),
-    columnWidths.map((width) => "-".repeat(width)).join("  ")
+    style(headers.map((header, index) => fit(header, columnWidths[index] ?? header.length)).join("  "), "bold", color),
+    style(columnWidths.map((width) => "-".repeat(width)).join("  "), "dim", color)
   ];
 
   for (const item of results) {
     const row = [item.repo.label, item.branch, item.upstream, item.result];
-    lines.push(row.map((cell, index) => fit(cell, columnWidths[index] ?? cell.length)).join("  "));
+    const cells = row.map((cell, index) => {
+      const fitted = fit(cell, columnWidths[index] ?? cell.length);
+      if (index !== 3) {
+        return fitted;
+      }
+      return style(fitted, resultStyle(item.category) ?? "dim", color);
+    });
+    lines.push(cells.join("  "));
   }
 
   return lines.join("\n");
 }
-
