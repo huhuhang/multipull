@@ -44,6 +44,7 @@ multipull
 multipull ~/GitHub
 multipull ~/GitHub ~/Work
 multipull --dry-run
+multipull --max-depth 5 ~/GitHub
 multipull --verbose
 multipull --park-to-default-branch
 ```
@@ -52,11 +53,12 @@ multipull --park-to-default-branch
 
 ```text
 --dry-run                 Show planned actions without pulling.
+--max-depth <depth>       Maximum directory depth to scan. Defaults to 3; use 0 for no limit.
 --verbose                 Show Git output details after the summary table.
 --park-to-default-branch  Preserve dirty changes before switching to the default branch.
 ```
 
-The public CLI is intentionally small. Concurrency, scan depth, timeout, and ignore rules are internal defaults so the command stays easy to use.
+Concurrency, timeout, and ignore rules are internal defaults so the command stays easy to use.
 
 ## Default Behavior
 

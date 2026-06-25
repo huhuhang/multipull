@@ -48,6 +48,16 @@ describe("discoverRepos", () => {
     expect(repos.map((repo) => repo.label)).toEqual(["d1/repo"]);
   });
 
+  it("uses a default maximum scan depth of 3", async () => {
+    const root = await tempDir();
+    await initRepo(join(root, "d1", "d2", "repo"));
+    await initRepo(join(root, "d1", "d2", "d3", "d4", "repo4"));
+
+    const { repos } = await discoverRepos([root]);
+
+    expect(repos.map((repo) => repo.label)).toEqual(["d1/d2/repo"]);
+  });
+
   it("reports scan progress", async () => {
     const root = await tempDir();
     await initRepo(join(root, "repo"));

@@ -3,7 +3,7 @@ import { realpathSync } from "node:fs";
 import { relative, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { Command } from "commander";
+import { Command, InvalidArgumentError } from "commander";
 
 import { DEFAULT_MAX_DEPTH } from "./defaults.js";
 import { discoverRepos } from "./discover.js";
@@ -13,6 +13,7 @@ import { runRepos } from "./runner.js";
 
 interface CliOptions {
   dryRun?: boolean;
+  maxDepth?: number;
   verbose?: boolean;
   parkToDefaultBranch?: boolean;
 }
@@ -103,6 +104,19 @@ function compactPath(path: string): string {
   return rel === ".." || rel.startsWith(`..${sep}`) ? path : rel;
 }
 
+function parseMaxDepth(value: string): number {
+  if (!/^\d+$/.test(value)) {
+    throw new InvalidArgumentError("scan depth must be a non-negative integer");
+  }
+
+  const depth = Number(value);
+  if (!Number.isSafeInteger(depth)) {
+    throw new InvalidArgumentError("scan depth must be a safe integer");
+  }
+
+  return depth;
+}
+
 function printDetails(results: Awaited<ReturnType<typeof runRepos>>, verbose: boolean): void {
   const detailItems = results.filter((item) => {
     if (verbose) {
@@ -134,6 +148,7 @@ export async function main(argv = process.argv): Promise<number> {
     .description("Pull many Git repositories safely.")
     .argument("[paths...]", "root directories to scan", ["."])
     .option("--dry-run", "show planned actions without pulling")
+    .option("--max-depth <depth>", "maximum directory depth to scan; 0 scans without a depth limit", parseMaxDepth)
     .option("--verbose", "show git output details after the summary table")
     .option(
       "--park-to-default-branch",
@@ -152,7 +167,7 @@ export async function main(argv = process.argv): Promise<number> {
 
   const progress = new SingleLineProgress();
   const { repos, missing } = await discoverRepos(paths, {
-    maxDepth: DEFAULT_MAX_DEPTH,
+    maxDepth: options.maxDepth ?? DEFAULT_MAX_DEPTH,
     onProgress: (event) => {
       progress.update(
         `multipull: scanning ${event.scannedDirs} dirs, found ${event.foundRepos} repos | ${compactPath(

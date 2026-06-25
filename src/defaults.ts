@@ -1,5 +1,5 @@
 export const DEFAULT_JOBS = 4;
-export const DEFAULT_MAX_DEPTH = 4;
+export const DEFAULT_MAX_DEPTH = 3;
 export const DEFAULT_TIMEOUT_MS = 300_000;
 
 export const SCAN_IGNORE_NAMES = new Set([
@@ -31,4 +31,3 @@ export const SCAN_IGNORE_NAMES = new Set([
 ]);
 
 export const SCAN_IGNORE_PREFIXES = ["lab-", "challenge-"];
-
